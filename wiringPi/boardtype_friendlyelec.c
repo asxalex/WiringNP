@@ -71,6 +71,30 @@ BoardHardwareInfo gAllBoardHardwareInfo[] = {
 	{"Amlogic", 0, NanoPi_K2, "NanoPi-K2", ""},
 };
 
+// read the /etc/WiringNP.conf
+static int determineBoard(BoardHardwareInfo** retBoardInfo) {
+    char *filename = "/etc/WiringNP.conf";
+    char hardware[1024], displayname[1024];
+    int b;
+    int i;
+    FILE *f;
+	if (!(f = fopen(filename, "r"))) {
+        LOGE("open %s failed\n", filename);
+        return -1;
+    }
+    fscanf(f, "%[^,],%d,%s", hardware, &b, displayname);
+    for (i=0; i<(sizeof(gAllBoardHardwareInfo)/sizeof(BoardHardwareInfo)); i++) {
+        if (strncasecmp(gAllBoardHardwareInfo[i].kernelHardware, hardware, strlen(gAllBoardHardwareInfo[i].kernelHardware)) == 0) {
+            if (gAllBoardHardwareInfo[i].kernelRevision == b) {
+                if (strncasecmp(gAllBoardHardwareInfo[i].boardDisplayName, displayname, strlen(gAllBoardHardwareInfo[i].boardDisplayName)) == 0) {
+                    *retBoardInfo = &gAllBoardHardwareInfo[i];
+                    return gAllBoardHardwareInfo[i].boardTypeId;
+                }
+            }
+        }
+    }
+}
+
 static int getFieldValueInCpuInfo(char* hardware, int hardwareMaxLen, char* revision, int revisionMaxLen )
 {
 	int n,i,j;
@@ -177,6 +201,7 @@ static int getAllwinnerBoardID(char* boardId, int boardIdMaxLen )
 }
 
 int getBoardType(BoardHardwareInfo** retBoardInfo) {
+    return determineBoard(retBoardInfo);
 	char hardware[255];
 	char revision[255];
 	char allwinnerBoardID[255];
